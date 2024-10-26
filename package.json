@@ -1,0 +1,16 @@
+{
+  "name": "velor-auth",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "npx playwright test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "passport": "^0.7.0",
+    "velor": "github:glennerichall/velor-utils",
+    "velor-backend": "github:glennerichall/velor-backend"
+  }
+}
