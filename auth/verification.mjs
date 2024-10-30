@@ -1,4 +1,9 @@
-import {isAuthenticated, isCsrfTokenValid, isSessionValid, isSessionValidAndAuthenticated} from "./predicates.mjs";
+import {
+    isAuthenticated,
+    isCsrfTokenValid,
+    isSessionValid,
+    isSessionValidAndAuthenticated
+} from "./predicates.mjs";
 import {notAsync} from "velor/utils/predicates.mjs";
 
 export const verify = (predicate, status = 403) => {
