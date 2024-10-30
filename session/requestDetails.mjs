@@ -50,8 +50,10 @@ export const createSessionValidation = (options = {}) => {
         function fail(msg) {
             if (onFail.throw) {
                 throw new Error(msg);
+
             } else if (onFail.status) {
                 res.status(onFail.status).send(msg);
+
             } else if (onFail.redirect) {
                 req.flash('error', msg);
                 let url = onFail.redirect;
@@ -64,6 +66,7 @@ export const createSessionValidation = (options = {}) => {
 
         if (req.sessionError && !exclude(req)) {
             fail(req.sessionError);
+
         } else {
             next();
         }

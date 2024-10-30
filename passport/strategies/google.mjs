@@ -4,20 +4,31 @@ import {GOOGLE} from "../../auth/authProviders.mjs";
 export class GoogleStrategy {
     #strategy;
     #passport;
+    #clientID;
+    #clientSecret;
+    #onProfileReceived;
 
-    constructor(passport, callbackURL, onProfileReceived,
+    constructor(passport, onProfileReceived,
                 clientID, clientSecret) {
+        this.#clientID = clientID;
+        this.#clientSecret = clientSecret;
+        this.#onProfileReceived = onProfileReceived;
+        this.#passport = passport;
+    }
+
+    initialize(callbackURL) {
         const configs = {
-            clientID,
-            clientSecret,
+            clientID: this.#clientID,
+            clientSecret: this.#clientSecret,
             callbackURL: callbackURL.replace(':provider', GOOGLE),
             passReqToCallback: true,
             scope: ['profile'],
             state: true,
         };
-        this.#passport = passport;
-        this.#strategy = new Strategy(configs, onProfileReceived);
-        passport.use(GOOGLE, this.#strategy);
+
+        this.#strategy = new Strategy(configs,
+            composeOnProfileReceived(GOOGLE, this.#onProfileReceived));
+        this.#passport.use(GOOGLE, this.#strategy);
     }
 
     initiate(req, res, next) {

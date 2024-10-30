@@ -3,9 +3,10 @@ import {PGStorage} from "./magiclink/PGStorage.mjs";
 import {MAGIC_LINK} from "../../auth/authProviders.mjs";
 import {chainHandlers} from "velor-backend/core/chainHandlers.mjs";
 import {composeValidateQuery} from "./magiclink/validateQuery.mjs";
-import {composeAuthenticate} from "./magiclink/requestLoginFromXhrIfNeeded.mjs";
-import {getProfileHandler} from "./getProfileHandler.mjs";
+import {composeAuthenticate} from "./magiclink/composeAuthenticate.mjs";
+import {composeProfileHandler} from "./magiclink/composeProfileHandler.mjs";
 import MagicLink from "passport-magic-link";
+import {composeSendTokenByEmail} from "./magiclink/composeSendTokenByEmail.mjs";
 
 
 export class MagicLinkStrategy {
@@ -15,10 +16,23 @@ export class MagicLinkStrategy {
     #authenticator;
     #options;
 
-    constructor(passport,
-                onProfileReceived, database, sendTokenByEmail, secret,
-                loginSuccessUrl, loginFailureUrl, requireLogin
-    ) {
+    constructor(passport, onProfileReceived, database, sendMail, secret,
+                loginSuccessUrl, loginFailureUrl, requireLogin) {
+
+        this.#options = {
+            onProfileReceived, database, sendMail, secret,
+            loginSuccessUrl, loginFailureUrl, requireLogin
+        };
+
+        this.#passport = passport;
+    }
+
+    initialize(callbackURL) {
+        const {
+            onProfileReceived, database,
+            sendMail, secret
+        } = this.#options;
+
         const config = {
             secret,
             userFields: ['email'],
@@ -30,17 +44,15 @@ export class MagicLinkStrategy {
         };
         this.#strategy = new MagicLink.Strategy(
             config,
-            sendTokenByEmail,
-            getProfileHandler(onProfileReceived));
+            composeSendTokenByEmail(callbackURL.replace(':provider', MAGIC_LINK), sendMail),
+            composeProfileHandler(onProfileReceived));
 
-        this.#options = {loginSuccessUrl, loginFailureUrl, requireLogin};
+
         this.#strategy.options = this.#options;
+        this.#passport.use(MAGIC_LINK, this.#strategy);
 
-        this.#passport = passport;
-        passport.use(MAGIC_LINK, this.#strategy);
-
-        this.#initiator = composeInitiator(passport);
-        this.#authenticator = composeAuthenticator(passport, this.#options);
+        this.#initiator = composeInitiator(this.#passport);
+        this.#authenticator = composeAuthenticator(this.#passport, this.#options);
     }
 
     initiate(req, res, next) {

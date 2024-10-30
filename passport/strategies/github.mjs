@@ -1,25 +1,35 @@
 import Strategy from 'passport-github2';
-import {GITHUB,} from "../../auth/authProviders.mjs";
+import {GITHUB} from "../../auth/authProviders.mjs";
 
 
 export class GitHubStrategy {
     #strategy;
     #passport;
+    #clientID;
+    #clientSecret;
+    #onProfileReceived;
 
-    constructor(passport, callbackURL, onProfileReceived, clientID, clientSecret) {
+    constructor(passport, onProfileReceived, clientID, clientSecret) {
+        this.#clientID = clientID;
+        this.#clientSecret = clientSecret;
+        this.#onProfileReceived = onProfileReceived;
+        this.#passport = passport;
+    }
 
+    initialize(callbackURL) {
         const configs = {
-            clientID,
-            clientSecret,
-            callbackURL,
+            clientID: this.#clientID,
+            clientSecret: this.#clientSecret,
+            callbackURL: callbackURL.replace(':provider', GITHUB),
             passReqToCallback: true,
             scope: ['profile'],
             state: true
         };
 
-        this.#passport = passport;
-        this.#strategy = new Strategy(configs, onProfileReceived);
-        passport.use(GITHUB, this.#strategy);
+        this.#strategy = new Strategy(configs,
+            composeOnProfileReceived(GITHUB, this.#onProfileReceived));
+
+        this.#passport.use(GITHUB, this.#strategy);
     }
 
     initiate(req, res, next) {

@@ -1,6 +1,6 @@
 import querystring from "querystring";
 
-export const getProfileHandler = onProfileReceived => (req, auth) => {
+export const composeProfileHandler = onProfileReceived => (req, auth) => {
     let displayName = null;
     auth.email = querystring.unescape(auth.email);
     if (auth.email) {

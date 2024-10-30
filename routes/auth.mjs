@@ -1,5 +1,4 @@
 import {
-    createSessionValidation,
     validateSession
 } from "../session/requestDetails.mjs";
 
@@ -19,15 +18,23 @@ import {
     verifyCsrfToken
 } from "../auth/verification.mjs";
 
-import {MAGIC_LINK} from "../auth/authProviders.mjs";
+import passport from "passport";
+
 import {composeRenderLoginFailure} from "../passport/composition/composeRenderLoginFailure.mjs";
-import {composeAuthStrategyProvider} from "../passport/middlewares/validateProvider.mjs";
+import {composeAuthStrategyProvider} from "../passport/composition/composeAuthStrategyProvider.mjs";
 import {composeRenderLoginSuccess} from "../passport/composition/composeRenderLoginSuccess.mjs";
 import {composePostConfirmEmail} from "../passport/composition/composePostConfirmEmail.mjs";
 import {composeLogOut} from "../passport/composition/composeLogOut.mjs";
 import {composeConfirmEmailCallback} from "../passport/composition/composeConfirmEmailCallback.mjs";
-import {initiateAuth} from "../passport/composition/initiateAuth.mjs";
-import {authenticate} from "../passport/composition/composeAuthAuthenticator.mjs";
+import {initiateAuth} from "../passport/middlewares/initiateAuth.mjs";
+import {authenticate} from "../passport/middlewares/authenticate.mjs";
+import {composeNotifyLoginSuccess} from "../passport/composition/composeNotifyLoginSuccess.mjs";
+import {composeNotifyFailure} from "../passport/composition/composeNotifyFailure.mjs";
+import {GitHubStrategy} from "../passport/strategies/github.mjs";
+import {composeOnUserProfile} from "../passport/profile/user.mjs";
+import {GoogleStrategy} from "../passport/strategies/google.mjs";
+import {TokenStrategy} from "../passport/strategies/token.mjs";
+import {MagicLinkStrategy} from "../passport/strategies/magiclink.mjs";
 
 
 export function createConfiguration(options) {
@@ -38,8 +45,59 @@ export function createConfiguration(options) {
         user,
         database,
         logger,
-        strategies,
+        getUrl,
+        google,
+        github,
+        token,
+        magiclink
     } = options;
+
+    const notifyLoginSuccess = composeNotifyLoginSuccess(
+        getUrl(URL_LOGIN_FAILURE),
+        getUrl(URL_LOGIN_SUCCESS),
+        user.getUser,
+        database.insertLoginEvent,
+        user.isSessionValid
+    );
+
+    const notifyLoginFailure = composeNotifyFailure(
+        getUrl(URL_LOGIN_FAILURE)
+    );
+
+    let strategies = [];
+
+    let onProfileReceived = composeOnUserProfile();
+
+    if (github) {
+        strategies.push(
+            new GitHubStrategy(passport,
+                onProfileReceived,
+                github.clientID, github.clientSecret)
+        )
+    }
+
+    if (google) {
+        strategies.push(
+            new GoogleStrategy(passport,
+                onProfileReceived,
+                google.clientID, google.clientSecret)
+        )
+    }
+
+    if (magiclink) {
+        strategies.push(
+            new MagicLinkStrategy(passport, onProfileReceived, database.authTokens,
+                email.sendMail, email.secret, user.requireLogin)
+        )
+    }
+
+    if (token) {
+        strategies.push(
+            new TokenStrategy(passport,
+                onProfileReceived,
+                token.token)
+        )
+    }
 
     return [
         {
@@ -47,11 +105,13 @@ export function createConfiguration(options) {
             path: '/login_success',
             get: composeRenderLoginSuccess(views.logo)
         },
+
         {
             name: URL_LOGIN_FAILURE,
             path: '/login_failure',
             get: composeRenderLoginFailure(views.logo)
         },
+
         {
             name: URL_CONFIRM_EMAIL,
             path: '/email/confirm',
@@ -76,6 +136,7 @@ export function createConfiguration(options) {
                 database.createToken
             )
         },
+
         {
             name: URL_LOGOUT,
             path: '/logout',
@@ -100,34 +161,21 @@ export function createConfiguration(options) {
             path: '/login/:provider',
             get: [
                 composeAuthStrategyProvider(strategies),
-                validateSession,
-                initiateAuth
+                initiateAuth,
+                notifyLoginSuccess,
+                notifyLoginFailure
             ]
         },
 
         {
             // Then, when the browser is redirected to the callback url,
-            // we check if the current session cookie is still valid.
-            // If the profile is accepted, then all user browser sessions are notified.
-
-            // Magic link session callback must be ignored as it may be called from another
-            // browser and still be a valid request. Eventually, the initiating browser
-            // will fetch the callback url in XHR transmitting along-way the valid browser session cookie.
             name: URL_PASSPORT_CALLBACK,
             path: '/redirect/:provider',
             get: [
                 composeAuthStrategyProvider(strategies),
-                createSessionValidation({
-                    onFail: {redirect: req => getFullHostUrls(req)[URL_LOGIN_FAILURE]},
-
-                    // Do not validate the session if the callback is for magic-link and
-                    // it is not an xhr request.
-                    exclude: req => {
-                        const provider = req.params.provider;
-                        return provider === MAGIC_LINK && !req.xhr;
-                    }
-                }),
-                authenticate
+                authenticate,
+                notifyLoginSuccess,
+                notifyLoginFailure
             ]
         }
     ];

@@ -6,14 +6,14 @@ export class PGStorage {
     }
 
     async set(auth, value) {
-        const tokens = await this.#database.authTokens.queryTokensForAuth(auth.id);
+        const tokens = await this.#database.queryTokensForAuth(auth.id);
         let promises = [];
         const tokenByValue = {};
 
         // clear expired tokens
         for (let token of tokens) {
             if (!value[token.value]) {
-                const p = this.#database.authTokens.deleteToken(token.id);
+                const p = this.#database.deleteToken(token.id);
                 promises.push(p);
             }
             tokenByValue[token.value] = token;
@@ -24,7 +24,7 @@ export class PGStorage {
         // add new tokens
         for (let token in value) {
             if (!tokenByValue[token]) {
-                const p = this.#database.authTokens.createToken(auth.id, {
+                const p = this.#database.createToken(auth.id, {
                     value: token,
                     expiration: new Date(value[token] * 1000)
                 });
@@ -35,7 +35,7 @@ export class PGStorage {
     }
 
     async get(auth) {
-        const tokens = await this.#database.authTokens.queryTokensForAuth(auth.id);
+        const tokens = await this.#database.queryTokensForAuth(auth.id);
         return tokens.reduce((prev, cur) => {
             prev[cur.value] = cur.expiration;
             return prev;
@@ -43,7 +43,7 @@ export class PGStorage {
     }
 
     async delete(auth) {
-        return this.#database.authTokens.deleteTokensForUser(auth.id);
+        return this.#database.deleteTokensForUser(auth.id);
     }
 
 }

@@ -1,31 +1,38 @@
-import DevStrategy from 'passport-custom';
-import {getLogger} from "velor/utils/injection/services.mjs";
+import Custom from 'passport-custom';
 import {TOKEN} from "../../auth/authProviders.mjs";
 import {chainHandlers} from "velor-backend/core/chainHandlers.mjs";
 
-export const registerStrategy = (passport, {onProfileReceived, token}) => {
-    const strategy = new DevStrategy(
-        (req, done) => {
-            getLogger(req).debug(`Logging with dev token[${req.get('Authorization')}]`);
+export class TokenStrategy {
+    #passport;
+    #strategy;
+    #initiator;
 
-            if (req.get('Authorization') === token) {
-                getLogger(req).debug(`Logging successful`);
-
-                onProfileReceived(req, null, null, {
-                    id: 'DevOps',
-                    email: 'zupfe@velor.ca',
-                    displayName: 'DevOps',
-                }, done);
-            } else {
-                done(new Error('Invalid token'));
+    constructor(passport, onProfileReceived, token) {
+        this.#strategy = new Custom.Strategy(
+            (req, done) => {
+                if (req.get('Authorization') === token) {
+                    onProfileReceived(req, null, null, {
+                        id: 'DevOps',
+                        email: 'zupfe@velor.ca',
+                        displayName: 'DevOps',
+                    }, done);
+                } else {
+                    done(new Error('Invalid token'));
+                }
             }
-        }
-    );
+        );
 
-    passport.use(TOKEN, strategy);
+        passport.use(TOKEN, this.#strategy);
+        this.#passport = passport;
+        this.#initiator = composeInitiator(passport);
+    }
+
+    initiate(req, res, next) {
+        return this.#initiator(req, res, next);
+    }
 }
 
-export function getInitiator(passport) {
+function composeInitiator(passport) {
     const initiate = passport.authenticate(TOKEN,
         {
             passReqToCallback: true,
@@ -42,9 +49,5 @@ export function getInitiator(passport) {
     return chainHandlers(
         initiate,
         replyOnError
-    )
-}
-
-export function getAuthenticator(passport) {
-
+    );
 }
