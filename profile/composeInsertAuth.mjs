@@ -1,4 +1,4 @@
-export function composeAuth(queryByAuthIdProvider, insertAuth) {
+export function composeInsertAuth(queryByAuthIdProvider, insertAuth) {
 
     return async (provider, profile) => {
         let auth = await queryByAuthIdProvider(profile.id, provider);
@@ -64,27 +64,4 @@ export function composeAuth(queryByAuthIdProvider, insertAuth) {
         }
         return auth;
     }
-}
-
-export function composeUser(queryForUserByAuthId, queryForAuthsByUserId,
-                            insertUser, grantUserRole, linkAuthToUSer) {
-
-    return async (database, auth) => {
-        let user = await queryForUserByAuthId(auth.id);
-        if (user === null) {
-            user = await insertUser(auth);
-
-            // everyone is a normal user
-            await grantUserRole(user.id, 'normal');
-        }
-
-        await linkAuthToUSer(user.id, auth.id);
-        user.auths = await queryForAuthsByUserId(user.id);
-        user.loginAuth = auth;
-        return user;
-    };
-}
-
-export function composeOnUserProfile() {
-
 }

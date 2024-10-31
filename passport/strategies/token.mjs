@@ -24,7 +24,15 @@ export class TokenStrategy {
 
         passport.use(TOKEN, this.#strategy);
         this.#passport = passport;
+
         this.#initiator = composeInitiator(passport);
+    }
+
+    get initialized() {
+        return !!this.#strategy;
+    }
+
+    initialize() {
     }
 
     initiate(req, res, next) {

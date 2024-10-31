@@ -1,31 +1,37 @@
-import {createSessionDetails, decryptSessionDetails, getFingerprint} from "./requestDetails.mjs";
 import crypto from "crypto";
 import {encryptText} from "velor/utils/encryption.mjs";
+import {getFingerprint} from "./getFingerprint.mjs";
+import {createUserSession} from "./createUserSession.mjs";
+import {decryptUserSession} from "./decryptUserSession.mjs";
+
+function initSession(req) {
+    createUserSession(req);
+
+    if (req.session.passport) {
+        req.session.passport.user = null;
+    }
+}
 
 export async function createSessionCookie(req, res) {
-    function initSession() {
-        createSessionDetails(req);
-        if (req.session.passport) {
-            req.session.passport.user = null;
-        }
-    }
 
-    if (!req.session.dx || !decryptSessionDetails(req)) {
-        initSession();
+    if (!req.session.dx || !decryptUserSession(req)) {
+        initSession(req);
     }
 
     if (
-        req.requestDetails.fingerprint !== getFingerprint(req) ||
-        req.requestDetails.ip !== req.ip) {
-        initSession();
+        req.userSession.fingerprint !== getFingerprint(req) ||
+        req.userSession.ip !== req.ip) {
+        initSession(req);
     }
 
-    if (req.requestDetails.errorMsg) {
-        res.status(400).send(req.requestDetails.errorMsg);
+    if (req.userSession.errorMsg) {
+        res.status(400).send(req.userSession.errorMsg);
+
     } else {
         const csrf = crypto.randomUUID();
-        req.requestDetails.csrf = csrf;
-        req.session.dx = encryptText(JSON.stringify(req.requestDetails));
+        req.userSession.csrf = csrf;
+        req.session.dx = encryptText(JSON.stringify(req.userSession));
+
         res.status(200).json({csrf});
     }
 }

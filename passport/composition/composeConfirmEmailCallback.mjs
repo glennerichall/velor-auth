@@ -1,4 +1,4 @@
-import {validateConfirmationToken} from "../profile/validateConfirmationToken.mjs";
+import {validateConfirmationToken} from "../../profile/validateConfirmationToken.mjs";
 
 export function composeConfirmEmailCallback(clientSecret, getTokens, createToken) {
 

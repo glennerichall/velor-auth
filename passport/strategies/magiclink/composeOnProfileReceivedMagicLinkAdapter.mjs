@@ -1,8 +1,10 @@
 import querystring from "querystring";
 
-export const composeProfileHandler = onProfileReceived => (req, auth) => {
+export const composeOnProfileReceivedMagicLinkAdapter = onProfileReceived => (req, auth) => {
     let displayName = null;
+
     auth.email = querystring.unescape(auth.email);
+
     if (auth.email) {
         let tokens = auth.email.split('@');
         if (tokens.length === 2) {

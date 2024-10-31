@@ -4,9 +4,9 @@ import {GOOGLE} from "../../auth/authProviders.mjs";
 export class GoogleStrategy {
     #strategy;
     #passport;
+    #onProfileReceived;
     #clientID;
     #clientSecret;
-    #onProfileReceived;
 
     constructor(passport, onProfileReceived,
                 clientID, clientSecret) {
@@ -14,6 +14,10 @@ export class GoogleStrategy {
         this.#clientSecret = clientSecret;
         this.#onProfileReceived = onProfileReceived;
         this.#passport = passport;
+    }
+
+    get initialized() {
+        return !!this.#strategy;
     }
 
     initialize(callbackURL) {
@@ -27,7 +31,8 @@ export class GoogleStrategy {
         };
 
         this.#strategy = new Strategy(configs,
-            composeOnProfileReceived(GOOGLE, this.#onProfileReceived));
+            composeOnProfileReceivedAdapter(GOOGLE, this.#onProfileReceived));
+
         this.#passport.use(GOOGLE, this.#strategy);
     }
 

@@ -1,4 +1,4 @@
-const composeOnProfileReceived = (provider, onProfileReceived) =>
+const composeOnProfileReceivedAdapter = (provider, onProfileReceived) =>
     async (req, tok1, tok2, profile, done) => {
         try {
             const user = await onProfileReceived(provider, profile);

@@ -1,12 +1,12 @@
 import {createJwt} from "./createJwt.mjs";
 import crypto from "crypto";
 
-export async function createConfirmationEmail(clientSecret, redirectUrl, user, profile, loginAuth) {
+export async function createConfirmationEmail(clientSecret, redirectUrl, user, profile, loginAuth, ttl = 10 * 60) {
     const email = profile.email;
 
     const token = await createJwt(loginAuth.id,
         {email, userId: user.id},
-        clientSecret);
+        clientSecret, ttl);
 
     const requestId = crypto.randomInt(10000);
     const content = `Please confirm your email by following the link below.

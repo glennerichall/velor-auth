@@ -1,7 +1,4 @@
-import {
-    validateSession
-} from "../session/requestDetails.mjs";
-
+import {validateSession} from "../session/createSessionValidation.mjs";
 
 import {
     URL_CONFIRM_EMAIL,
@@ -12,13 +9,10 @@ import {
     URL_PASSPORT_CALLBACK
 } from "./urls.mjs";
 
-
 import {
     verifyAuthentication,
     verifyCsrfToken
 } from "../auth/verification.mjs";
-
-import passport from "passport";
 
 import {composeRenderLoginFailure} from "../passport/composition/composeRenderLoginFailure.mjs";
 import {composeAuthStrategyProvider} from "../passport/composition/composeAuthStrategyProvider.mjs";
@@ -30,11 +24,7 @@ import {initiateAuth} from "../passport/middlewares/initiateAuth.mjs";
 import {authenticate} from "../passport/middlewares/authenticate.mjs";
 import {composeNotifyLoginSuccess} from "../passport/composition/composeNotifyLoginSuccess.mjs";
 import {composeNotifyFailure} from "../passport/composition/composeNotifyFailure.mjs";
-import {GitHubStrategy} from "../passport/strategies/github.mjs";
-import {composeOnUserProfile} from "../passport/profile/user.mjs";
-import {GoogleStrategy} from "../passport/strategies/google.mjs";
-import {TokenStrategy} from "../passport/strategies/token.mjs";
-import {MagicLinkStrategy} from "../passport/strategies/magiclink.mjs";
+import {createStrategies} from "../passport/strategies/createStrategies.mjs";
 
 
 export function createConfiguration(options) {
@@ -44,62 +34,25 @@ export function createConfiguration(options) {
         email,
         user,
         database,
-        logger,
         getUrl,
-        google,
-        github,
-        token,
-        magiclink
     } = options;
 
+    const {strategies, initialize} = createStrategies(options);
+
     const notifyLoginSuccess = composeNotifyLoginSuccess(
-        getUrl(URL_LOGIN_FAILURE),
-        getUrl(URL_LOGIN_SUCCESS),
+        () => getUrl(URL_LOGIN_FAILURE),
+        () => getUrl(URL_LOGIN_SUCCESS),
         user.getUser,
         database.insertLoginEvent,
         user.isSessionValid
     );
 
     const notifyLoginFailure = composeNotifyFailure(
-        getUrl(URL_LOGIN_FAILURE)
+        () => getUrl(URL_LOGIN_FAILURE)
     );
 
-    let strategies = [];
 
-    let onProfileReceived = composeOnUserProfile();
-
-    if (github) {
-        strategies.push(
-            new GitHubStrategy(passport,
-                onProfileReceived,
-                github.clientID, github.clientSecret)
-        )
-    }
-
-    if (google) {
-        strategies.push(
-            new GoogleStrategy(passport,
-                onProfileReceived,
-                google.clientID, google.clientSecret)
-        )
-    }
-
-    if (magiclink) {
-        strategies.push(
-            new MagicLinkStrategy(passport, onProfileReceived, database.authTokens,
-                email.sendMail, email.secret, user.requireLogin)
-        )
-    }
-
-    if (token) {
-        strategies.push(
-            new TokenStrategy(passport,
-                onProfileReceived,
-                token.token)
-        )
-    }
-
-    return [
+    const configuration = [
         {
             name: URL_LOGIN_SUCCESS,
             path: '/login_success',
@@ -146,7 +99,6 @@ export function createConfiguration(options) {
                 verifyCsrfToken,
                 composeLogOut(
                     database.insertLoginEvent,
-                    logger,
                     user.getUser,
                     user.emitLoggedOut
                 )
@@ -179,4 +131,9 @@ export function createConfiguration(options) {
             ]
         }
     ];
+
+    return {
+        configuration,
+        initialize
+    };
 }

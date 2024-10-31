@@ -1,4 +1,5 @@
 export function composeAuthStrategyProvider(strategies) {
+
     return (req, res, next) => {
         let provider = req.params.provider;
         let strategy = strategies[provider];
@@ -8,6 +9,7 @@ export function composeAuthStrategyProvider(strategies) {
         }
 
         req.authStrategy = strategy;
+
         next();
     }
 }

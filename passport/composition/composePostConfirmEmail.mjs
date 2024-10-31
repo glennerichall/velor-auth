@@ -1,4 +1,4 @@
-import {createConfirmationEmail} from "../profile/createConfirmationEmail.mjs";
+import {createConfirmationEmail} from "../../profile/createConfirmationEmail.mjs";
 
 export function composePostConfirmEmail(sendEmail, clientSecret, redirectUrl,
                                         getUser, getProfile, getLoginAuth

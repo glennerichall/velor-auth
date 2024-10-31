@@ -16,6 +16,10 @@ export class GitHubStrategy {
         this.#passport = passport;
     }
 
+    get initialized() {
+        return !!this.#strategy;
+    }
+
     initialize(callbackURL) {
         const configs = {
             clientID: this.#clientID,
@@ -27,7 +31,7 @@ export class GitHubStrategy {
         };
 
         this.#strategy = new Strategy(configs,
-            composeOnProfileReceived(GITHUB, this.#onProfileReceived));
+            composeOnProfileReceivedAdapter(GITHUB, this.#onProfileReceived));
 
         this.#passport.use(GITHUB, this.#strategy);
     }

@@ -6,7 +6,7 @@ export const isSessionValid = async req => !req.sessionError;
 
 export const isCsrfTokenValid = async req => {
     const csrf = req.header('X-Csrf-Token');
-    return csrf === req.requestDetails.csrf;
+    return csrf === req.userSession.csrf;
 };
 
 export const isSessionValidAndAuthenticated = allAsync(

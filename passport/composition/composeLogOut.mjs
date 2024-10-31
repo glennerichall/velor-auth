@@ -4,7 +4,7 @@ export function composeLogOut(insertLoginEvent, getUser, emitLoggedOut) {
         const {
             fingerprint,
             ip,
-        } = req.requestDetails;
+        } = req.userSession;
 
         await new Promise((resolve, reject) => {
             req.logout(async err => {

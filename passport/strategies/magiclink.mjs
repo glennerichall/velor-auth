@@ -2,9 +2,9 @@ import {configs} from "./magiclink/configs.mjs";
 import {PGStorage} from "./magiclink/PGStorage.mjs";
 import {MAGIC_LINK} from "../../auth/authProviders.mjs";
 import {chainHandlers} from "velor-backend/core/chainHandlers.mjs";
-import {composeValidateQuery} from "./magiclink/validateQuery.mjs";
-import {composeAuthenticate} from "./magiclink/composeAuthenticate.mjs";
-import {composeProfileHandler} from "./magiclink/composeProfileHandler.mjs";
+import {composeMagicLinkValidateQuery} from "./magiclink/validateQuery.mjs";
+import {composeMagicLinkAuthenticate} from "./magiclink/composeMagicLinkAuthenticate.mjs";
+import {composeOnProfileReceivedMagicLinkAdapter} from "./magiclink/composeOnProfileReceivedMagicLinkAdapter.mjs";
 import MagicLink from "passport-magic-link";
 import {composeSendTokenByEmail} from "./magiclink/composeSendTokenByEmail.mjs";
 
@@ -16,15 +16,19 @@ export class MagicLinkStrategy {
     #authenticator;
     #options;
 
-    constructor(passport, onProfileReceived, database, sendMail, secret,
-                loginSuccessUrl, loginFailureUrl, requireLogin) {
+    constructor(passport, onProfileReceived,
+                database, sendMail, secret,
+                requireLogin) {
 
         this.#options = {
-            onProfileReceived, database, sendMail, secret,
-            loginSuccessUrl, loginFailureUrl, requireLogin
+            onProfileReceived, database, sendMail, secret, requireLogin
         };
 
         this.#passport = passport;
+    }
+
+    get initialized() {
+        return !!this.#strategy;
     }
 
     initialize(callbackURL) {
@@ -42,10 +46,11 @@ export class MagicLinkStrategy {
             userPrimaryKey: 'loginAuth',
             ...configs,
         };
+
         this.#strategy = new MagicLink.Strategy(
             config,
             composeSendTokenByEmail(callbackURL.replace(':provider', MAGIC_LINK), sendMail),
-            composeProfileHandler(onProfileReceived));
+            composeOnProfileReceivedMagicLinkAdapter(onProfileReceived));
 
 
         this.#strategy.options = this.#options;
@@ -96,8 +101,8 @@ function composeAuthenticator(passport, options) {
             userPrimaryKey: 'loginAuth'
         });
 
-    const requestLoginFromXhrIfNeeded = composeAuthenticate(loginSuccessUrl, loginFailureUrl, requireLogin);
-    const validateQuery = composeValidateQuery(loginFailureUrl);
+    const requestLoginFromXhrIfNeeded = composeMagicLinkAuthenticate(loginSuccessUrl, loginFailureUrl, requireLogin);
+    const validateQuery = composeMagicLinkValidateQuery(loginFailureUrl);
 
     return chainHandlers(
         validateQuery,
